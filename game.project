@@ -1,0 +1,18 @@
+[bootstrap]
+main_collection = /main/main.collectionc
+
+[script]
+shared_state = 1
+
+[display]
+width = 800
+height = 800
+
+[android]
+input_method = HiddenInputField
+
+[project]
+title = unfold-shape
+dependencies#0 = https://github.com/britzl/monarch/archive/refs/tags/3.7.0.zip
+dependencies#1 = https://github.com/britzl/deftest/archive/refs/tags/2.7.2.zip
+

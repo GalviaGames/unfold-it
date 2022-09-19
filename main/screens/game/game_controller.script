@@ -1,0 +1,100 @@
+local grid_manager = require "main.modules.grid_manager"
+local levels = require "main.modules.levels"
+
+local GRID_COLS = 10
+local GRID_ROWS = 10
+
+local function cell_index(col, row)
+    return tostring(col) .. tostring(row)
+end
+
+local function move(self, col, row)
+    local index = cell_index(col, row)
+    local cell = self.cells[index]
+    if cell ~= nil then
+        if cell.used then
+            msg.post("#", "restart_level")
+        else
+            cell.used = true
+            msg.post(cell.id, "use")
+        end
+    else
+        -- if there's no cell the player loses
+        print("ERROR!:", index, "is nil")
+        msg.post("#", "restart_level")
+    end
+    return { col = col, row = row, pos = self.gm.pos(col, row) }
+end
+
+local function restart_level(self)
+    for key, cell in pairs(self.cells) do
+        msg.post(cell.id, "free")
+        cell.used = false
+    end
+
+    local pos = self.level.initial_position
+    self.current_position = move(self, pos.col, pos.row)
+end
+
+local function render_level(self, level)
+    local cells = {}
+    for index, cell in ipairs(level.shape) do
+        local pos = self.gm.pos(cell.col, cell.row)
+        local new_index = cell_index(cell.col, cell.row)
+        cell.used = false
+        local id = factory.create("/cell_factory#factory", pos, nil, cell)
+        cell.id = id
+
+        cells[new_index] = cell
+    end
+
+    return cells
+end
+
+function init(self)
+    print("game_controller")
+    msg.post(".", "acquire_input_focus")
+
+    local game_width = tonumber(sys.get_config("display.width"))
+    local game_height = tonumber(sys.get_config("display.height"))
+
+    self.cell_width = game_width / GRID_COLS
+    self.cell_height = game_height / GRID_ROWS
+
+    self.gm = grid_manager.new(0, 0, self.cell_width, self.cell_height)
+
+    self.level = levels.get()[1]
+    self.cells = render_level(self, self.level)
+
+    -- starting point
+    local pos = self.level.initial_position
+    self.current_position = move(self, pos.col, pos.row)
+end
+
+function update(self, dt)
+end
+
+function on_message(self, message_id, message, sender)
+    if message_id == hash("restart_level") then
+        print("restarted level")
+        restart_level(self)
+    end
+end
+
+function on_input(self, action_id, action)
+    if action.released then
+        if action_id == hash("move_up") then
+            local new_row = self.current_position.row + 1
+            self.current_position = move(self, self.current_position.col, new_row)
+        elseif action_id == hash("move_down") then
+            local new_row = self.current_position.row - 1
+            self.current_position = move(self, self.current_position.col, new_row)
+        elseif action_id == hash("move_left") then
+            local new_col = self.current_position.col - 1
+            self.current_position = move(self, new_col, self.current_position.row)
+        elseif action_id == hash("move_right") then
+            local new_col = self.current_position.col + 1
+            self.current_position = move(self, new_col, self.current_position.row)
+        end
+    end
+end

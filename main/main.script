@@ -1,0 +1,19 @@
+local monarch = require "monarch.monarch"
+
+local SHOW_MENU = hash("show_menu")
+local SHOW_GAME = hash("show_game")
+
+function init(self)
+	msg.post("@render:", "use_fixed_fit_projection")
+	
+	msg.post(".", "acquire_input_focus")
+	msg.post("#", SHOW_GAME)
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == SHOW_MENU then
+		monarch.show("menu")
+	elseif message_id == SHOW_GAME then
+		monarch.show("game")
+	end
+end
