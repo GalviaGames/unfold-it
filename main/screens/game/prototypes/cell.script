@@ -12,12 +12,18 @@ function on_message(self, message_id, message, sender)
     if message_id == hash("use") then
         if not self.used then
             self.used = true
-            msg.post("#selected_sprite", "enable")
+          --  msg.post("#selected_sprite", "enable")
+
+            msg.post("#sprite", "play_animation", { id = hash("white_guide") }) 
         end
     elseif message_id == hash("free") then
         if self.used then
             self.used = false
-            msg.post("#selected_sprite", "disable")
+            msg.post("#sprite", "play_animation", { id = hash("black_guide") }) 
+           --  msg.post("#selected_sprite", "disable")
         end
+     elseif message_id == hash("just_moved") then
+        msg.post("#sprite", "play_animation", { id = message.anim }) 
     end
+    
 end
