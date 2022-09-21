@@ -3,9 +3,9 @@ go.property("row", 0)
 
 function init(self)
     self.used = false
-    msg.post("#selected_sprite", "disable")
-    go.set("#sprite", "tint", vmath.vector4(1, 1, 1, .0), {})
-    go.animate("#sprite", "tint", go.PLAYBACK_ONCE_FORWARD, vmath.vector4(1, 1, 1, 1), go.EASING_LINEAR, 0.1, 0)
+   -- msg.post("#selected_sprite", "disable")
+  --  go.set("#sprite", "tint", vmath.vector4(1, 1, 1, .0), {})
+  --  go.animate("#sprite", "tint", go.PLAYBACK_ONCE_FORWARD, vmath.vector4(1, 1, 1, 1), go.EASING_LINEAR, 0.1, 0)
 end
 
 function on_message(self, message_id, message, sender)
@@ -13,13 +13,19 @@ function on_message(self, message_id, message, sender)
         if not self.used then
             self.used = true
           --  msg.post("#selected_sprite", "enable")
-
-            msg.post("#sprite", "play_animation", { id = hash("white_guide") }) 
+        if message.anim == hash("up") or hash("down") then
+            msg.post("#sprite", "play_animation", { id = hash("tile_filled_hor") }) 
+        end 
+        if message.anim == hash("left") or hash("right") then
+            msg.post("#sprite", "play_animation", { id = hash("tile_filled_ver") }) 
+        end 
+        
+           
         end
     elseif message_id == hash("free") then
         if self.used then
             self.used = false
-            msg.post("#sprite", "play_animation", { id = hash("black_guide") }) 
+            msg.post("#sprite", "play_animation", { id = hash("tile_unfilled") }) 
            --  msg.post("#selected_sprite", "disable")
         end
      elseif message_id == hash("just_moved") then

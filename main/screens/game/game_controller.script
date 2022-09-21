@@ -39,7 +39,7 @@ local function move(self, col, row, dir, fst_time)
         msg.post("#", "restart_level")
     end
     if not fst_time then
-        msg.post(pre_cel.id, "use")
+        msg.post(pre_cel.id, "use", {anim = hash(dir)})
     end 
     return { col = col, row = row, pos = self.gm.pos(col, row) }
 end
@@ -57,7 +57,7 @@ end
 
 local function render_level(self, level)
 
-    local tile_size = 66
+    local tile_size = 86
     local grid_size = 10 
     local cells = {}
 
