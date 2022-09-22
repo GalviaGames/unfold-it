@@ -11,6 +11,29 @@ local function cell_index(col, row)
     return tostring(col) .. tostring(row)
 end
 
+local function convert_to_iso_pos(self, col, row)
+
+    local tile_size = 86
+    local grid_size = 10 
+    local pos = self.gm.pos(col, row)
+
+    local n_x = pos.x + tile_size
+    local n_y = pos.y + tile_size
+    local x_iso = n_x * 0.5 + n_y * -0.5
+    local y_iso = n_x * 0.25 + n_y * 0.25
+    local offset_y = tile_size * grid_size / 3
+    local tp = vmath.vector3(MID_WIDTH + x_iso,  MID_HEIGHT + y_iso - offset_y, 0)
+    return tp
+end
+
+local function check_win(self)
+    if self.remains == 0 then
+        msg.post("#", "win_level")
+    end
+end
+
+
+
 local function move(self, col, row, dir, fst_time)
     local index = cell_index(col, row)
     local cell = self.cells[index]
@@ -27,20 +50,40 @@ local function move(self, col, row, dir, fst_time)
     local pre_cel = self.cells[pre_indx]
     if cell ~= nil then
         if cell.used then
-            msg.post("#", "restart_level")
+            sound.play("#failed", {delay = 0, gain = 0.5, pan = 0, speed = 1.0})
+            msg.post(".", "release_input_focus")
+            msg.post(cell.id, "just_moved", {anim = hash(dir)})
+            self.delay_id2 = timer.delay(1, false, function() 
+                msg.post("#", "restart_level")
+                msg.post(".", "acquire_input_focus")
+                timer.cancel(self.delay_id2)
+            end)
         else
             cell.used = true
             msg.post(cell.id, "just_moved", {anim = hash(dir)})
-
+            self.remains = self.remains - 1
+            sound.play("#wood", {delay = 0, gain = 0.5, pan = 0, speed = 1.0})
+            msg.post("#", "check_if_win")
         end
     else
         -- if there's no cell the player loses
         print("ERROR!:", index, "is nil")
-        msg.post("#", "restart_level")
+        local tp = convert_to_iso_pos(self, col, row)
+        local id = factory.create("/cell_factory#factory", tp, nil, {failed = true})
+        sound.play("#splash", {delay = 0, gain = 0.5, pan = 0, speed = 1.0})
+        sound.play("#failed", {delay = 1, gain = 0.5, pan = 0, speed = 1.0})
+        msg.post(".", "release_input_focus")
+        self.delay_id = timer.delay(3, false, function() 
+            msg.post("#", "restart_level")
+            msg.post(".", "acquire_input_focus")
+            timer.cancel(self.delay_id)
+        end)
+        
     end
-    if not fst_time then
+    if not fst_time and pre_cel ~= nil then
         msg.post(pre_cel.id, "use", {anim = hash(dir)})
     end 
+ 
     return { col = col, row = row, pos = self.gm.pos(col, row) }
 end
 
@@ -55,33 +98,36 @@ local function restart_level(self)
    
 end
 
+local function win_level(self)
+    print("win increment level!!")
+    msg.post(".", "release_input_focus")
+    msg.post(cell.id, "just_moved", {anim = hash(dir)})
+    self.delay_id3 = timer.delay(1, false, function() 
+        msg.post("#", "restart_level")
+        msg.post(".", "acquire_input_focus")
+        timer.cancel(self.delay_id3)
+    end)
+
+end
+
 local function render_level(self, level)
 
-    local tile_size = 86
-    local grid_size = 10 
     local cells = {}
 
     local length = #level.shape
-
+    self.remains = length
     -- inverted for to render from top to bottom
     --  for index, cell in ipairs(level.shape) do
     for index=length,1,-1 do
         cell = level.shape[index]
-        local pos = self.gm.pos(cell.col, cell.row)
-        local new_index = cell_index(cell.col, cell.row)
-        cell.used = false
-
-        local n_x = pos.x + tile_size
-        local n_y = pos.y + tile_size
-        local x_iso = n_x * 0.5 + n_y * -0.5
-        local y_iso = n_x * 0.25 + n_y * 0.25
-        local offset_y = tile_size * grid_size / 3
-        local tp = vmath.vector3(MID_WIDTH + x_iso,  MID_HEIGHT + y_iso - offset_y, 0)
-
         
+        cell.used = false
+        
+        local tp = convert_to_iso_pos(self, cell.col, cell.row)
         local id = factory.create("/cell_factory#factory", tp, nil, cell)
         cell.id = id
-
+        local new_index = cell_index(cell.col, cell.row)
+        
         cells[new_index] = cell
     end
 
@@ -115,6 +161,12 @@ function on_message(self, message_id, message, sender)
     if message_id == hash("restart_level") then
         print("restarted level")
         restart_level(self)
+    end
+    if message_id == hash("check_if_win") then
+        check_win(self)
+    end
+    if message_id == hash("win_level") then
+        --win_level(self)
     end
 end
 
